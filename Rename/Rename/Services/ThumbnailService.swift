@@ -40,11 +40,21 @@ actor ThumbnailService {
         let original = image.size
         guard original.width > 0, original.height > 0 else { return image }
         let scale = min(targetSize.width / original.width, targetSize.height / original.height)
-        let newSize = CGSize(width: original.width * scale, height: original.height * scale)
-        let result = NSImage(size: newSize)
-        result.lockFocus()
-        image.draw(in: CGRect(origin: .zero, size: newSize))
-        result.unlockFocus()
-        return result
+        let newSize = CGSize(width: floor(original.width * scale), height: floor(original.height * scale))
+
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return image }
+        guard let ctx = CGContext(
+            data: nil,
+            width: Int(newSize.width),
+            height: Int(newSize.height),
+            bitsPerComponent: 8,
+            bytesPerRow: Int(newSize.width) * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return image }
+
+        ctx.draw(cgImage, in: CGRect(origin: .zero, size: newSize))
+        guard let outputCG = ctx.makeImage() else { return image }
+        return NSImage(cgImage: outputCG, size: newSize)
     }
 }
