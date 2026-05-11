@@ -161,4 +161,44 @@ final class RenameEngineTests: XCTestCase {
         let result = compute(files, [item(.prefix("X_"))])
         XCTAssertEqual(result, ["X_a.jpg", "X_b.jpg", "X_c.jpg"])
     }
+
+    // MARK: Numbering
+    func test_numbering_prefixSequence() {
+        let files = [file("a.jpg"), file("b.jpg"), file("c.jpg")]
+        let result = compute(files, [item(.numberSequence(start: 1, step: 1, digits: 2, position: .prefix))])
+        XCTAssertEqual(result, ["01_a.jpg", "02_b.jpg", "03_c.jpg"])
+    }
+
+    func test_numbering_suffixSequence() {
+        let files = [file("a.jpg"), file("b.jpg")]
+        let result = compute(files, [item(.numberSequence(start: 10, step: 5, digits: 3, position: .suffix))])
+        XCTAssertEqual(result, ["a_010.jpg", "b_015.jpg"])
+    }
+
+    func test_numbering_replaceAll() {
+        let files = [file("a.jpg"), file("b.jpg"), file("c.jpg")]
+        let result = compute(files, [item(.numberSequence(start: 1, step: 1, digits: 1, position: .replaceAll))])
+        XCTAssertEqual(result, ["1.jpg", "2.jpg", "3.jpg"])
+    }
+
+    func test_numbering_zeroPadded() {
+        let files = (1...12).map { file("\($0).jpg") }
+        let result = compute(files, [item(.numberSequence(start: 1, step: 1, digits: 3, position: .replaceAll))])
+        XCTAssertEqual(result.first, "001.jpg")
+        XCTAssertEqual(result.last, "012.jpg")
+    }
+
+    func test_numbering_stepGreaterThanOne() {
+        let files = [file("x.jpg"), file("y.jpg"), file("z.jpg")]
+        let result = compute(files, [item(.numberSequence(start: 0, step: 10, digits: 2, position: .prefix))])
+        XCTAssertEqual(result, ["00_x.jpg", "10_y.jpg", "20_z.jpg"])
+    }
+
+    // MARK: Date
+    func test_dateBased_today_prependsDateToStem() {
+        let files = [file("photo.jpg")]
+        let result = compute(files, [item(.dateBased(format: "yyyy", source: .today))])
+        let year = String(Calendar.current.component(.year, from: Date()))
+        XCTAssertEqual(result, ["\(year)_photo.jpg"])
+    }
 }

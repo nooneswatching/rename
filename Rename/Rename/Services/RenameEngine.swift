@@ -53,9 +53,24 @@ enum RenameEngine {
             case .changeExtension(let newExt):
                 extensionOverride = newExt
 
-            case .numberSequence, .dateBased:
-                // Implemented in Task 5
-                break
+            case .numberSequence(let start, let step, let digits, let position):
+                let number = start + index * step
+                let padded = String(format: "%0\(digits)d", number)
+                switch position {
+                case .prefix:
+                    stem = "\(padded)_\(stem)"
+                case .suffix:
+                    stem = "\(stem)_\(padded)"
+                case .replaceAll:
+                    stem = padded
+                }
+
+            case .dateBased(let format, let source):
+                let date = resolvedDate(for: url, source: source)
+                let formatter = DateFormatter()
+                formatter.dateFormat = format
+                let dateStr = formatter.string(from: date)
+                stem = "\(dateStr)_\(stem)"
             }
         }
 
@@ -88,6 +103,19 @@ enum RenameEngine {
             let first = words[0].lowercased()
             let rest = words.dropFirst().map { $0.capitalized }
             return ([first] + rest).joined()
+        }
+    }
+
+    private static func resolvedDate(for url: URL, source: DateSource) -> Date {
+        switch source {
+        case .today:
+            return Date()
+        case .fileModified:
+            let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+            return (attrs?[.modificationDate] as? Date) ?? Date()
+        case .fileCreated:
+            let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+            return (attrs?[.creationDate] as? Date) ?? Date()
         }
     }
 }
