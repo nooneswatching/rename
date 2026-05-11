@@ -68,5 +68,7 @@ final class RenameExecutorTests: XCTestCase {
         ])
         XCTAssertTrue(FileManager.default.fileExists(atPath: to1.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: to2.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: from1.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: from2.path))
     }
 }

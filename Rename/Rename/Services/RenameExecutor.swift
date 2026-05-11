@@ -30,6 +30,9 @@ enum RenameExecutor {
                 try? FileManager.default.moveItem(at: done.to, to: done.from)
             }
             let failedIndex = completed.count
+            guard failedIndex < changes.count else {
+                throw error
+            }
             let failed = changes[failedIndex]
             throw RenameExecutorError.renameFailed(from: failed.from, to: failed.to, underlying: error)
         }
