@@ -97,9 +97,9 @@ struct OrderingCanvasView: View {
                     onSelect: { appState.selectedFileID = file.id }
                 )
             }
-            .onMove { source, destination in
+            .onMove(perform: appState.extensionFilter.isEmpty ? { source, destination in
                 appState.moveFiles(from: source, to: destination)
-            }
+            } : nil)
         }
         .listStyle(.plain)
     }

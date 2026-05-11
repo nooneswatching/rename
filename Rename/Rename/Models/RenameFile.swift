@@ -2,7 +2,7 @@ import AppKit
 
 struct RenameFile: Identifiable {
     let id: UUID
-    let originalURL: URL
+    var originalURL: URL
     var computedName: String
     var thumbnail: NSImage?
 

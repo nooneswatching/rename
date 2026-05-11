@@ -106,9 +106,7 @@ final class AppState: ObservableObject {
             pushUndo(operation)
             // Update originalURLs to the new paths, preserving cached thumbnails
             for (index, change) in changes.enumerated() {
-                let existingThumbnail = files[index].thumbnail
-                files[index] = RenameFile(originalURL: change.to)
-                files[index].thumbnail = existingThumbnail
+                files[index].originalURL = change.to
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -124,12 +122,11 @@ final class AppState: ObservableObject {
                 uniqueKeysWithValues: operation.changes.map { ($0.to, $0.from) }
             )
             files = files.map { file in
+                var f = file
                 if let original = reversedURLs[file.originalURL] {
-                    var restored = RenameFile(originalURL: original)
-                    restored.thumbnail = file.thumbnail
-                    return restored
+                    f.originalURL = original
                 }
-                return file
+                return f
             }
         } catch {
             errorMessage = error.localizedDescription

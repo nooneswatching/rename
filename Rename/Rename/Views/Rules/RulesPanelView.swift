@@ -16,6 +16,7 @@ struct RulesPanelView: View {
                 .buttonStyle(.plain)
                 .popover(isPresented: $showAddMenu) {
                     AddRuleMenu(isPresented: $showAddMenu)
+                        .environmentObject(appState)
                 }
             }
             .padding(.horizontal, 12)
@@ -34,17 +35,19 @@ struct RulesPanelView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 8) {
-                        ForEach($appState.rules) { $item in
-                            RuleCardView(item: $item) {
-                                appState.removeRule(id: item.id)
-                            }
+                List {
+                    ForEach($appState.rules) { $item in
+                        RuleCardView(item: $item) {
+                            appState.removeRule(id: item.id)
                         }
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
                     }
-                    .padding(10)
-                    .animation(.default, value: appState.rules.map(\.id))
+                    .onMove { source, destination in
+                        appState.moveRules(from: source, to: destination)
+                    }
                 }
+                .listStyle(.plain)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
