@@ -1,0 +1,6 @@
+.worktrees/
+.superpowers/
+*.xcuserstate
+xcuserdata/
+DerivedData/
+.DS_Store
