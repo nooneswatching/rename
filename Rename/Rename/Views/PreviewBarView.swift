@@ -2,14 +2,45 @@ import SwiftUI
 
 struct PreviewBarView: View {
     @EnvironmentObject var appState: AppState
-    var onApply: () -> Void
-    var body: some View {
-        HStack {
-            Text("Preview Bar")
-            Spacer()
-            Button("Apply Rename", action: onApply)
-                .disabled(appState.files.isEmpty)
+    let onApply: () -> Void
+
+    private var previewFile: RenameFile? {
+        if let id = appState.selectedFileID {
+            return appState.files.first(where: { $0.id == id })
         }
-        .padding(.horizontal)
+        return appState.files.first
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            if let file = previewFile {
+                Text(file.originalURL.lastPathComponent)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+
+                Image(systemName: "arrow.right")
+                    .foregroundStyle(.tertiary)
+
+                Text(file.computedName)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .foregroundStyle(appState.conflictedNames.contains(file.computedName) ? .red : .accentColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text("No files loaded")
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity)
+            }
+
+            Button("Apply Rename") {
+                onApply()
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(appState.files.isEmpty || appState.hasConflicts)
+            .help(appState.hasConflicts ? "Resolve naming conflicts before applying" : "")
+        }
+        .padding(.horizontal, 16)
     }
 }
