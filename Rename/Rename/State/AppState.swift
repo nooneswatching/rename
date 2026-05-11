@@ -116,11 +116,12 @@ final class AppState: ObservableObject {
             )
             files = files.map { file in
                 if let original = reversedURLs[file.originalURL] {
-                    return RenameFile(originalURL: original)
+                    var restored = RenameFile(originalURL: original)
+                    restored.thumbnail = file.thumbnail
+                    return restored
                 }
                 return file
             }
-            loadThumbnails(for: files)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -146,19 +147,19 @@ final class AppState: ObservableObject {
         isRecomputing = true
         defer { isRecomputing = false }
         let names = RenameEngine.compute(files: files, rules: rules)
-        var updated = files
         for (index, name) in zip(files.indices, names) {
-            updated[index].computedName = name
+            files[index].computedName = name
         }
-        files = updated
     }
 
     private func loadThumbnails(for targets: [RenameFile]) {
         for file in targets {
-            guard let index = files.firstIndex(where: { $0.id == file.id }) else { continue }
+            let fileID = file.id
+            let url = file.originalURL
             Task {
-                let image = await ThumbnailService.shared.thumbnail(for: file.originalURL)
-                self.files[index].thumbnail = image
+                let image = await ThumbnailService.shared.thumbnail(for: url)
+                guard let currentIndex = files.firstIndex(where: { $0.id == fileID }) else { return }
+                files[currentIndex].thumbnail = image
             }
         }
     }
