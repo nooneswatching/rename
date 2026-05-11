@@ -85,20 +85,26 @@ struct OrderingCanvasView: View {
     // MARK: List view
 
     private var listView: some View {
-        List {
-            ForEach(visibleFiles) { file in
-                FileRowView(
-                    file: file,
-                    isSelected: appState.selectedFileID == file.id,
-                    isConflict: conflictNames.contains(file.computedName),
-                    onSelect: { appState.selectedFileID = file.id }
-                )
+        ScrollView {
+            LazyVStack(spacing: 2) {
+                ForEach(visibleFiles) { file in
+                    FileRowView(
+                        file: file,
+                        isSelected: appState.selectedFileID == file.id,
+                        isConflict: conflictNames.contains(file.computedName),
+                        onSelect: { appState.selectedFileID = file.id }
+                    )
+                    .onDrag {
+                        NSItemProvider(object: file.id.uuidString as NSString)
+                    }
+                    .onDrop(of: [UTType.plainText], delegate: GridDropDelegate(
+                        targetID: file.id,
+                        appState: appState
+                    ))
+                }
             }
-            .onMove(perform: appState.extensionFilter.isEmpty ? { source, destination in
-                appState.moveFiles(from: source, to: destination)
-            } : nil)
+            .padding(.vertical, 4)
         }
-        .listStyle(.plain)
     }
 }
 
