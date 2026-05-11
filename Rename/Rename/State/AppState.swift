@@ -27,10 +27,17 @@ final class AppState: ObservableObject {
         undoStack.isEmpty ? nil : undoStack.removeLast()
     }
 
+    private var isRecomputing = false
+
     private func recomputeNames() {
+        guard !isRecomputing else { return }
+        isRecomputing = true
+        defer { isRecomputing = false }
         let names = RenameEngine.compute(files: files, rules: rules)
-        for (index, name) in names.enumerated() {
-            files[index].computedName = name
+        var updated = files
+        for (index, name) in zip(files.indices, names) {
+            updated[index].computedName = name
         }
+        files = updated
     }
 }

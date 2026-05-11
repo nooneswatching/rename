@@ -28,7 +28,7 @@ final class AppStateTests: XCTestCase {
             state.pushUndo(RenameOperation(changes: [], timestamp: Date(timeIntervalSince1970: Double(i))))
         }
         XCTAssertEqual(state.undoStack.count, 10)
-        XCTAssertNotEqual(state.undoStack.last?.timestamp, first.timestamp)
+        XCTAssertNotEqual(state.undoStack.first?.timestamp, first.timestamp)
     }
 
     func test_canUndo_falseWhenStackEmpty() {
