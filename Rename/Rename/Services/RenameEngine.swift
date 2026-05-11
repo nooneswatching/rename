@@ -71,6 +71,14 @@ enum RenameEngine {
                 formatter.dateFormat = format
                 let dateStr = formatter.string(from: date)
                 stem = "\(dateStr)_\(stem)"
+
+            case .template(let format, let numberStart, let numberDigits):
+                let originalStem = url.deletingPathExtension().lastPathComponent
+                let number = numberStart + index
+                let padded = String(format: "%0\(max(1, numberDigits))d", number)
+                stem = format
+                    .replacingOccurrences(of: "{name}", with: originalStem)
+                    .replacingOccurrences(of: "{n}", with: padded)
             }
         }
 

@@ -72,6 +72,7 @@ private struct AddRuleMenu: View {
         ("Remove Range", .removeRange(from: 0, count: 1)),
         ("Change Extension", .changeExtension("")),
         ("Date-based Naming", .dateBased(format: "yyyy-MM-dd", source: .fileModified)),
+        ("Custom Name", .template(format: "", numberStart: 1, numberDigits: 2)),
     ]
 
     var body: some View {

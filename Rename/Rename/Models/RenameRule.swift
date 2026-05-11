@@ -30,6 +30,7 @@ enum RenameRule: Equatable {
     case removeRange(from: Int, count: Int)
     case changeExtension(String)
     case dateBased(format: String, source: DateSource)
+    case template(format: String, numberStart: Int, numberDigits: Int)
 
     var displayName: String {
         switch self {
@@ -43,6 +44,7 @@ enum RenameRule: Equatable {
         case .removeRange: return "Remove Range"
         case .changeExtension: return "Change Extension"
         case .dateBased: return "Date-based Naming"
+        case .template: return "Custom Name"
         }
     }
 }

@@ -120,7 +120,75 @@ struct RuleCardView: View {
                 }
                 .font(.caption)
             }
+
+        case .template(let format, let numberStart, let numberDigits):
+            TemplateRuleControls(
+                format: format,
+                numberStart: numberStart,
+                numberDigits: numberDigits,
+                onFormatChange: { item.rule = .template(format: $0, numberStart: numberStart, numberDigits: numberDigits) },
+                onStartChange: { item.rule = .template(format: format, numberStart: $0, numberDigits: numberDigits) },
+                onDigitsChange: { item.rule = .template(format: format, numberStart: numberStart, numberDigits: $0) }
+            )
         }
+    }
+}
+
+// MARK: - Template Rule Controls
+
+private struct TemplateRuleControls: View {
+    let format: String
+    let numberStart: Int
+    let numberDigits: Int
+    let onFormatChange: (String) -> Void
+    let onStartChange: (Int) -> Void
+    let onDigitsChange: (Int) -> Void
+
+    @State private var text: String
+
+    init(format: String, numberStart: Int, numberDigits: Int,
+         onFormatChange: @escaping (String) -> Void,
+         onStartChange: @escaping (Int) -> Void,
+         onDigitsChange: @escaping (Int) -> Void) {
+        self.format = format
+        self.numberStart = numberStart
+        self.numberDigits = numberDigits
+        self.onFormatChange = onFormatChange
+        self.onStartChange = onStartChange
+        self.onDigitsChange = onDigitsChange
+        self._text = State(initialValue: format)
+    }
+
+    private var hasNumber: Bool { text.contains("{n}") }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField("e.g. Claude_{n} or {name}_{n}", text: $text)
+                .textFieldStyle(.roundedBorder)
+                .font(.caption)
+                .onChange(of: text) { _, newValue in onFormatChange(newValue) }
+
+            HStack(spacing: 6) {
+                Button("Current name") { insertToken("{name}") }
+                    .buttonStyle(.bordered)
+                    .font(.caption)
+                Button("Number") { insertToken("{n}") }
+                    .buttonStyle(.bordered)
+                    .font(.caption)
+            }
+
+            if hasNumber {
+                HStack(spacing: 12) {
+                    LabeledIntField("Start", value: numberStart, onChange: onStartChange)
+                    LabeledIntField("Digits", value: numberDigits, onChange: onDigitsChange)
+                }
+            }
+        }
+    }
+
+    private func insertToken(_ token: String) {
+        text += token
+        onFormatChange(text)
     }
 }
 
