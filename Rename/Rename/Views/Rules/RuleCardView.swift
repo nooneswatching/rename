@@ -148,7 +148,7 @@ private struct LabeledTextField: View {
             TextField("", text: $text)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .onChange(of: text) { onChange($0) }
+                .onChange(of: text) { _, newValue in onChange(newValue) }
         }
     }
 }
@@ -175,8 +175,8 @@ private struct LabeledIntField: View {
             TextField("", text: $text)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .onChange(of: text) {
-                    if let n = Int($0) { onChange(n) }
+                .onChange(of: text) { _, newValue in
+                    if let n = Int(newValue) { onChange(n) }
                 }
         }
     }

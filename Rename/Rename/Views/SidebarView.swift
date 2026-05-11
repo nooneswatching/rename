@@ -70,7 +70,7 @@ struct SidebarView: View {
             .padding()
             .disabled(appState.files.isEmpty)
         }
-        .onChange(of: extensionFilter) { newValue in
+        .onChange(of: extensionFilter) { _, newValue in
             appState.extensionFilter = newValue
         }
     }
