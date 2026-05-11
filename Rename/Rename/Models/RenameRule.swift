@@ -19,7 +19,7 @@ enum DateSource: String, CaseIterable {
     case today = "Today"
 }
 
-enum RenameRule {
+enum RenameRule: Equatable {
     case prefix(String)
     case suffix(String)
     case findReplace(find: String, replace: String, caseSensitive: Bool)

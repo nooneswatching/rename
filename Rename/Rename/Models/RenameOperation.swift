@@ -1,10 +1,15 @@
 import Foundation
 
+struct RenameChange {
+    let from: URL
+    let to: URL
+}
+
 struct RenameOperation {
     let timestamp: Date
-    let changes: [(from: URL, to: URL)]
+    let changes: [RenameChange]
 
-    init(changes: [(from: URL, to: URL)], timestamp: Date = Date()) {
+    init(changes: [RenameChange], timestamp: Date = Date()) {
         self.timestamp = timestamp
         self.changes = changes
     }

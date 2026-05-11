@@ -3,11 +3,12 @@ import XCTest
 
 final class ModelsTests: XCTestCase {
 
-    func test_renameFile_hasStableID() {
+    func test_renameFile_idIsStableAcrossMutation() {
         let url = URL(fileURLWithPath: "/tmp/test.jpg")
-        let file = RenameFile(originalURL: url)
-        let id = file.id
-        XCTAssertEqual(file.id, id)
+        var file = RenameFile(originalURL: url)
+        let originalID = file.id
+        file.computedName = "modified.jpg"
+        XCTAssertEqual(file.id, originalID)
     }
 
     func test_renameFile_computedNameDefaultsToOriginal() {
@@ -24,7 +25,7 @@ final class ModelsTests: XCTestCase {
     func test_renameOperation_storesChanges() {
         let from = URL(fileURLWithPath: "/tmp/old.jpg")
         let to = URL(fileURLWithPath: "/tmp/new.jpg")
-        let op = RenameOperation(changes: [(from: from, to: to)])
+        let op = RenameOperation(changes: [RenameChange(from: from, to: to)])
         XCTAssertEqual(op.changes.count, 1)
         XCTAssertEqual(op.changes[0].from, from)
         XCTAssertEqual(op.changes[0].to, to)
