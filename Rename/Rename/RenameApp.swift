@@ -1,17 +1,25 @@
-//
-//  RenameApp.swift
-//  Rename
-//
-//  Created by Joshua Newton on 5/11/26.
-//
-
 import SwiftUI
 
 @main
 struct RenameApp: App {
+    @StateObject private var appState = AppState()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(appState)
+                .frame(minWidth: 900, minHeight: 600)
+        }
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
+        .commands {
+            CommandGroup(replacing: .undoRedo) {
+                Button("Undo Rename") {
+                    appState.performUndo()
+                }
+                .keyboardShortcut("z", modifiers: .command)
+                .disabled(!appState.canUndo)
+            }
         }
     }
 }
