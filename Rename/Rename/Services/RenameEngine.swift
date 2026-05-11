@@ -26,7 +26,7 @@ enum RenameEngine {
                 stem = stem + text
 
             case .findReplace(let find, let replace, let caseSensitive):
-                guard !find.isEmpty else { break }
+                guard !find.isEmpty else { continue }
                 let options: String.CompareOptions = caseSensitive ? [] : [.caseInsensitive]
                 stem = stem.replacingOccurrences(of: find, with: replace, options: options)
 
@@ -37,12 +37,12 @@ enum RenameEngine {
                 stem = applyCase(style, to: stem)
 
             case .insertAt(let text, let index):
-                let clamped = min(index, stem.count)
+                let clamped = max(0, min(index, stem.count))
                 let insertIndex = stem.index(stem.startIndex, offsetBy: clamped)
                 stem.insert(contentsOf: text, at: insertIndex)
 
             case .removeRange(let from, let count):
-                let startClamped = min(from, stem.count)
+                let startClamped = max(0, min(from, stem.count))
                 let endClamped = min(startClamped + count, stem.count)
                 if startClamped < endClamped {
                     let start = stem.index(stem.startIndex, offsetBy: startClamped)

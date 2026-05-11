@@ -118,6 +118,11 @@ final class RenameEngineTests: XCTestCase {
         XCTAssertEqual(result, ["a.jpg"])
     }
 
+    func test_removeRange_zeroCount_isNoOp() {
+        let result = compute([file("photo.jpg")], [item(.removeRange(from: 0, count: 0))])
+        XCTAssertEqual(result, ["photo.jpg"])
+    }
+
     // MARK: Change Extension
     func test_changeExtension_replacesExtension() {
         let result = compute([file("photo.jpg")], [item(.changeExtension("png"))])
