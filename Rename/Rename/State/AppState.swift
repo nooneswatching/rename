@@ -40,6 +40,15 @@ final class AppState: ObservableObject {
         addFiles(from: FileLoader.topLevelFileURLs(in: folder))
     }
 
+    func handleDroppedURL(_ url: URL) {
+        var isDir: ObjCBool = false
+        if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
+            addFilesFromFolder(url)
+        } else {
+            addFiles(from: [url])
+        }
+    }
+
     func clearFiles() {
         files = []
         selectedFileID = nil

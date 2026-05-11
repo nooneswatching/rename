@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct RenameApp: App {
-    @StateObject private var appState = AppState()
+    @StateObject var appState = AppState()
 
     var body: some Scene {
         WindowGroup {

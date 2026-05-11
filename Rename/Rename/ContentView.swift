@@ -61,13 +61,7 @@ struct ContentView: View {
                 guard let data = item as? Data,
                       let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
                 DispatchQueue.main.async {
-                    var isDir: ObjCBool = false
-                    if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir),
-                       isDir.boolValue {
-                        appState.addFilesFromFolder(url)
-                    } else {
-                        appState.addFiles(from: [url])
-                    }
+                    appState.handleDroppedURL(url)
                 }
             }
         }
