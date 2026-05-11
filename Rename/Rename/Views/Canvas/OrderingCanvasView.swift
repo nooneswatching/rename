@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 enum CanvasMode: String, CaseIterable {
     case grid = "Grid"
@@ -67,21 +68,13 @@ struct OrderingCanvasView: View {
                         isConflict: conflictNames.contains(file.computedName),
                         onSelect: { appState.selectedFileID = file.id }
                     )
-                    .draggable(file.id.uuidString)
-                    .dropDestination(for: String.self) { items, _ in
-                        guard let idString = items.first,
-                              let fromID = UUID(uuidString: idString),
-                              let fromIndex = appState.files.firstIndex(where: { $0.id == fromID }),
-                              let toIndex = appState.files.firstIndex(where: { $0.id == file.id }),
-                              fromIndex != toIndex else { return false }
-                        withAnimation {
-                            appState.files.move(
-                                fromOffsets: IndexSet(integer: fromIndex),
-                                toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
-                            )
-                        }
-                        return true
+                    .onDrag {
+                        NSItemProvider(object: file.id.uuidString as NSString)
                     }
+                    .onDrop(of: [UTType.plainText], delegate: GridDropDelegate(
+                        targetID: file.id,
+                        appState: appState
+                    ))
                 }
             }
             .padding()
@@ -107,4 +100,37 @@ struct OrderingCanvasView: View {
         }
         .listStyle(.plain)
     }
+}
+
+// MARK: - Grid Drop Delegate
+
+struct GridDropDelegate: DropDelegate {
+    let targetID: UUID
+    let appState: AppState
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let provider = info.itemProviders(for: [UTType.plainText]).first else { return false }
+        provider.loadObject(ofClass: NSString.self) { object, _ in
+            guard let idString = object as? String,
+                  let fromID = UUID(uuidString: idString) else { return }
+            DispatchQueue.main.async {
+                guard let fromIndex = appState.files.firstIndex(where: { $0.id == fromID }),
+                      let toIndex = appState.files.firstIndex(where: { $0.id == targetID }),
+                      fromIndex != toIndex else { return }
+                withAnimation {
+                    appState.files.move(
+                        fromOffsets: IndexSet(integer: fromIndex),
+                        toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
+                    )
+                }
+            }
+        }
+        return true
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func validateDrop(info: DropInfo) -> Bool { true }
 }
