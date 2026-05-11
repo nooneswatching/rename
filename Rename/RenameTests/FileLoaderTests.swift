@@ -76,4 +76,10 @@ final class FileLoaderTests: XCTestCase {
         let urls = FileLoader.topLevelFileURLs(in: tempDir)
         XCTAssertEqual(urls.map(\.lastPathComponent), ["a.txt", "b.txt", "c.txt"])
     }
+
+    func test_makeFiles_skipsNonExistentFiles() {
+        let url = tempDir.appendingPathComponent("ghost.jpg") // never created on disk
+        let files = FileLoader.makeFiles(from: [url], existing: [])
+        XCTAssertTrue(files.isEmpty)
+    }
 }
