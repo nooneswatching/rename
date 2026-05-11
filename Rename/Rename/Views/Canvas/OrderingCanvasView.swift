@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 enum CanvasMode: String, CaseIterable {
     case grid = "Grid"
@@ -9,7 +8,6 @@ enum CanvasMode: String, CaseIterable {
 struct OrderingCanvasView: View {
     @EnvironmentObject var appState: AppState
     @State private var mode: CanvasMode = .grid
-    @State private var draggingID: UUID? = nil
 
     private var visibleFiles: [RenameFile] {
         guard !appState.extensionFilter.isEmpty else { return appState.files }
@@ -69,15 +67,21 @@ struct OrderingCanvasView: View {
                         isConflict: conflictNames.contains(file.computedName),
                         onSelect: { appState.selectedFileID = file.id }
                     )
-                    .onDrag {
-                        draggingID = file.id
-                        return NSItemProvider(object: file.id.uuidString as NSString)
+                    .draggable(file.id.uuidString)
+                    .dropDestination(for: String.self) { items, _ in
+                        guard let idString = items.first,
+                              let fromID = UUID(uuidString: idString),
+                              let fromIndex = appState.files.firstIndex(where: { $0.id == fromID }),
+                              let toIndex = appState.files.firstIndex(where: { $0.id == file.id }),
+                              fromIndex != toIndex else { return false }
+                        withAnimation {
+                            appState.files.move(
+                                fromOffsets: IndexSet(integer: fromIndex),
+                                toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
+                            )
+                        }
+                        return true
                     }
-                    .onDrop(of: [UTType.plainText], delegate: GridDropDelegate(
-                        targetFile: file,
-                        appState: appState,
-                        draggingID: $draggingID
-                    ))
                 }
             }
             .padding()
@@ -103,34 +107,4 @@ struct OrderingCanvasView: View {
         }
         .listStyle(.plain)
     }
-}
-
-// MARK: - Grid Drop Delegate
-
-struct GridDropDelegate: DropDelegate {
-    let targetFile: RenameFile
-    let appState: AppState
-    @Binding var draggingID: UUID?
-
-    func performDrop(info: DropInfo) -> Bool {
-        guard let draggingID,
-              let fromIndex = appState.files.firstIndex(where: { $0.id == draggingID }),
-              let toIndex = appState.files.firstIndex(where: { $0.id == targetFile.id }),
-              fromIndex != toIndex else { return false }
-
-        withAnimation {
-            appState.files.move(
-                fromOffsets: IndexSet(integer: fromIndex),
-                toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
-            )
-        }
-        self.draggingID = nil
-        return true
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-
-    func validateDrop(info: DropInfo) -> Bool { true }
 }
