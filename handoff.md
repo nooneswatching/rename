@@ -2,47 +2,59 @@
 
 ## Where We Left Off
 
-Discussing how to package and distribute the app to peers. The user wants a **downloadable app with an installer file** (a signed, notarized `.pkg`).
+App is signed, notarized, and packaged as a drag-to-install DMG (`Rename.dmg` on Desktop). Sent to testers. Discussing what to build next.
 
-### Next Step
-Determine if the user has an **Apple Developer account** ($99/year). The answer shapes the path:
+---
 
-- **Has account** → sign the app with Developer ID certificate, notarize with `notarytool`, package as `.pkg` with `pkgbuild`/`productbuild`
-- **No account** → unsigned zip is the only option (peers must right-click → Open to bypass Gatekeeper)
+## Recent Work (2026-05-12)
 
-Resume by asking: "Do you have an Apple Developer account set up?"
+- UI cleanup: aligned panel headers to consistent 38pt bar, standardized empty state icon/text sizes
+- Multi-select and remove: Finder-style click/cmd-click/shift-click, trash button, delete key, right-click context menu
+- App icon implemented and icon cache cleared
+- Signed with Developer ID Application: JOSHUA EARL NEWTON (J89TGDL779), notarized, stapled
+- Packaged as drag-to-install DMG
 
 ---
 
 ## Project State
 
-**Repo:** https://github.com/nooneswatching/rename  
-**Local path:** `/Users/joshuanewton/Library/CloudStorage/Dropbox/Development/Rename`  
-**Xcode project:** `Rename/Rename.xcodeproj`  
-**Branch:** `main` (all work committed and pushed)  
-**Tests:** 64 passing
-
-### Recent commits (newest first)
-- `feat: add Custom Name template rule with {name} and {n} tokens`
-- `fix: replace List/onMove with ScrollView/onDrag/onDrop for list reorder`
-- `fix: update onChange to two-parameter form, removing deprecation warnings`
-- `fix: restore onDrag/onDrop for grid reorder, load UUID from provider in performDrop`
-- `fix: stable UUIDs after rename/undo, disable list reorder with filter, wire rule reorder`
-
-### Known issues / future work
-- Drag-and-drop in grid mode works via `onDrag`/`onDrop` — test further if users report issues
-- Invalid regex silently no-ops instead of disabling the rule (spec gap, low priority)
-- `LabeledTextField` in RuleCardView uses local `@State` — external changes won't reflect after initial render (acceptable for current use)
-- Distribution / packaging not yet done
+**Repo:** https://github.com/nooneswatching/rename
+**Local path:** `/Users/joshuanewton/Library/CloudStorage/Dropbox/Development/Rename`
+**Xcode project:** `Rename/Rename.xcodeproj`
+**Branch:** `main` (all work committed and pushed, DMG not in repo)
+**Last commit:** `40d8fc6` feat: add app icon
 
 ---
 
-## App Summary
+## Known Issues / Short Term Fixes
 
-Native macOS batch file renaming app. Key features:
-- Visual ordering canvas (grid + list) — drag files to set numbering order
-- Rules panel with 11 rule types including the new **Custom Name** template rule
-- Custom Name rule: type a format like `Claude_{n}` with `{name}` and `{n}` tokens, configurable digit width and start number
-- Live before/after preview, conflict detection, review sheet before applying
-- Rename with undo (10-level stack)
-- Four file loading methods: Open Folder, Add Files, drag files, drag folder
+- Invalid regex silently no-ops instead of showing an error on the rule card
+- Source folder name no longer shown after header redesign — useful context, consider restoring as subtitle or tooltip
+- Empty state when filter matches nothing has no explanatory message
+
+---
+
+## Feature Ideas (prioritize based on tester feedback)
+
+**High value**
+- Undo for file removal from list (currently removed files can't be restored without re-loading)
+- Persistent rules — rules reset on every launch; saving a default ruleset or named presets would be a big workflow improvement
+- Folder output — option to copy renamed files to a new folder instead of renaming in place (non-destructive mode)
+
+**Polish**
+- Regex error feedback — inline error on rule card when regex is invalid
+- Preview count — show how many files will be renamed before hitting Apply
+- Conflict resolution hints — when there's a naming conflict, indicate which rule is causing it
+
+**Power user**
+- Rule presets — save/load named rule sets (e.g. "Photo import workflow")
+- Auto-update via Sparkle framework — notifies users of new versions, no manual DMG re-download
+
+---
+
+## Distribution
+
+- DMG packaging process: archive with xcodebuild → export with Developer ID → notarize with notarytool → staple → hdiutil DMG with Applications symlink
+- Team ID: J89TGDL779
+- Apple ID: josh.newton@gmail.com
+- Next distribution step: Mac App Store (needs App Store provisioning profile + review)
