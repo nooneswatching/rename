@@ -9,7 +9,7 @@ final class AppStateTests: XCTestCase {
         XCTAssertTrue(state.files.isEmpty)
         XCTAssertTrue(state.rules.isEmpty)
         XCTAssertTrue(state.undoStack.isEmpty)
-        XCTAssertNil(state.selectedFileID)
+        XCTAssertTrue(state.selectedFileIDs.isEmpty)
     }
 
     func test_undoStack_cappedAtTen() {
@@ -40,5 +40,44 @@ final class AppStateTests: XCTestCase {
         let state = AppState()
         state.pushUndo(RenameOperation(changes: []))
         XCTAssertTrue(state.canUndo)
+    }
+
+    // MARK: - removeFiles
+
+    func test_removeFiles_removesOnlyTargetedFiles() {
+        let state = AppState()
+        let a = RenameFile(originalURL: URL(fileURLWithPath: "/a.txt"))
+        let b = RenameFile(originalURL: URL(fileURLWithPath: "/b.txt"))
+        let c = RenameFile(originalURL: URL(fileURLWithPath: "/c.txt"))
+        state.files = [a, b, c]
+        state.removeFiles(ids: [a.id, c.id])
+        XCTAssertEqual(state.files.map(\.id), [b.id])
+    }
+
+    func test_removeFiles_removingAllFilesLeavesEmptyArray() {
+        let state = AppState()
+        let a = RenameFile(originalURL: URL(fileURLWithPath: "/a.txt"))
+        let b = RenameFile(originalURL: URL(fileURLWithPath: "/b.txt"))
+        state.files = [a, b]
+        state.removeFiles(ids: [a.id, b.id])
+        XCTAssertTrue(state.files.isEmpty)
+    }
+
+    func test_removeFiles_prunesSelectedFileIDs() {
+        let state = AppState()
+        let a = RenameFile(originalURL: URL(fileURLWithPath: "/a.txt"))
+        let b = RenameFile(originalURL: URL(fileURLWithPath: "/b.txt"))
+        state.files = [a, b]
+        state.selectedFileIDs = [a.id, b.id]
+        state.removeFiles(ids: [a.id])
+        XCTAssertEqual(state.selectedFileIDs, [b.id])
+    }
+
+    func test_removeFiles_unknownIDsAreNoOp() {
+        let state = AppState()
+        let a = RenameFile(originalURL: URL(fileURLWithPath: "/a.txt"))
+        state.files = [a]
+        state.removeFiles(ids: [UUID()])
+        XCTAssertEqual(state.files.count, 1)
     }
 }

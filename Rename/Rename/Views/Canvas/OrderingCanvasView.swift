@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import AppKit
 
 enum CanvasMode: String, CaseIterable {
     case grid = "Grid"
@@ -9,6 +10,7 @@ enum CanvasMode: String, CaseIterable {
 struct OrderingCanvasView: View {
     @EnvironmentObject var appState: AppState
     @State private var mode: CanvasMode = .grid
+    @State private var lastClickedID: UUID? = nil
 
     private var visibleFiles: [RenameFile] {
         guard !appState.extensionFilter.isEmpty else { return appState.files }
@@ -18,10 +20,19 @@ struct OrderingCanvasView: View {
     }
 
     private var conflictNames: Set<String> { appState.conflictedNames }
+    private var selectionCount: Int { appState.selectedFileIDs.count }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
+                if selectionCount > 0 {
+                    Button(action: removeSelected) {
+                        Label("Remove \(selectionCount)", systemImage: "trash")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 4)
+                }
                 Spacer()
                 Picker("View", selection: $mode) {
                     ForEach(CanvasMode.allCases, id: \.self) { m in
@@ -31,6 +42,14 @@ struct OrderingCanvasView: View {
                 .pickerStyle(.segmented)
                 .frame(width: 140)
                 Spacer()
+                if selectionCount > 0 {
+                    Button(action: {}) {
+                        Label("Remove \(selectionCount)", systemImage: "trash")
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 4)
+                    .hidden()
+                }
             }
             .frame(height: 38)
             .padding(.horizontal, 12)
@@ -46,6 +65,49 @@ struct OrderingCanvasView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onKeyPress(.delete) {
+            if selectionCount > 0 { removeSelected() }
+            return selectionCount > 0 ? .handled : .ignored
+        }
+    }
+
+    // MARK: Selection
+
+    private func handleTap(file: RenameFile) {
+        let flags = NSEvent.modifierFlags
+        let isCmd = flags.contains(.command)
+        let isShift = flags.contains(.shift)
+
+        if isCmd {
+            if appState.selectedFileIDs.contains(file.id) {
+                appState.selectedFileIDs.remove(file.id)
+            } else {
+                appState.selectedFileIDs.insert(file.id)
+            }
+            lastClickedID = file.id
+        } else if isShift, let anchor = lastClickedID {
+            let ids = visibleFiles.map(\.id)
+            if let anchorIndex = ids.firstIndex(of: anchor),
+               let targetIndex = ids.firstIndex(of: file.id) {
+                let range = anchorIndex <= targetIndex
+                    ? ids[anchorIndex...targetIndex]
+                    : ids[targetIndex...anchorIndex]
+                appState.selectedFileIDs.formUnion(range)
+            } else {
+                // Anchor is no longer visible; fall back to plain select
+                appState.selectedFileIDs = [file.id]
+                lastClickedID = file.id
+            }
+        } else {
+            appState.selectedFileIDs = [file.id]
+            lastClickedID = file.id
+        }
+    }
+
+    private func removeSelected() {
+        let visibleSelected = Set(visibleFiles.map(\.id)).intersection(appState.selectedFileIDs)
+        appState.removeFiles(ids: visibleSelected)
+        lastClickedID = nil
     }
 
     // MARK: Empty state
@@ -62,6 +124,20 @@ struct OrderingCanvasView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // MARK: Context menu
+
+    @ViewBuilder
+    private func contextMenu(for file: RenameFile) -> some View {
+        let targetIDs = appState.selectedFileIDs.contains(file.id)
+            ? appState.selectedFileIDs
+            : [file.id]
+        let label = targetIDs.count > 1 ? "Remove \(targetIDs.count) Files" : "Remove from List"
+
+        Button(role: .destructive, action: { appState.removeFiles(ids: targetIDs) }) {
+            Label(label, systemImage: "trash")
+        }
+    }
+
     // MARK: Grid view
 
     private var gridView: some View {
@@ -70,14 +146,15 @@ struct OrderingCanvasView: View {
                 ForEach(visibleFiles) { file in
                     FileCardView(
                         file: file,
-                        isSelected: appState.selectedFileID == file.id,
+                        isSelected: appState.selectedFileIDs.contains(file.id),
                         isConflict: conflictNames.contains(file.computedName),
-                        onSelect: { appState.selectedFileID = file.id }
+                        onSelect: { handleTap(file: file) }
                     )
+                    .contextMenu { contextMenu(for: file) }
                     .onDrag {
                         NSItemProvider(object: file.id.uuidString as NSString)
                     }
-                    .onDrop(of: [UTType.plainText], delegate: GridDropDelegate(
+                    .onDrop(of: [UTType.plainText], delegate: ReorderDropDelegate(
                         targetID: file.id,
                         appState: appState
                     ))
@@ -96,14 +173,15 @@ struct OrderingCanvasView: View {
                 ForEach(visibleFiles) { file in
                     FileRowView(
                         file: file,
-                        isSelected: appState.selectedFileID == file.id,
+                        isSelected: appState.selectedFileIDs.contains(file.id),
                         isConflict: conflictNames.contains(file.computedName),
-                        onSelect: { appState.selectedFileID = file.id }
+                        onSelect: { handleTap(file: file) }
                     )
+                    .contextMenu { contextMenu(for: file) }
                     .onDrag {
                         NSItemProvider(object: file.id.uuidString as NSString)
                     }
-                    .onDrop(of: [UTType.plainText], delegate: GridDropDelegate(
+                    .onDrop(of: [UTType.plainText], delegate: ReorderDropDelegate(
                         targetID: file.id,
                         appState: appState
                     ))
@@ -116,7 +194,7 @@ struct OrderingCanvasView: View {
 
 // MARK: - Grid Drop Delegate
 
-struct GridDropDelegate: DropDelegate {
+struct ReorderDropDelegate: DropDelegate {
     let targetID: UUID
     let appState: AppState
 

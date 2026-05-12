@@ -13,7 +13,7 @@ final class AppState: ObservableObject {
         didSet { recomputeNames() }
     }
     @Published var undoStack: [RenameOperation] = []
-    @Published var selectedFileID: UUID? = nil
+    @Published var selectedFileIDs: Set<UUID> = []
     @Published var errorMessage: String? = nil
     @Published var extensionFilter: String = ""
 
@@ -51,7 +51,12 @@ final class AppState: ObservableObject {
 
     func clearFiles() {
         files = []
-        selectedFileID = nil
+        selectedFileIDs = []
+    }
+
+    func removeFiles(ids: Set<UUID>) {
+        files.removeAll { ids.contains($0.id) }
+        selectedFileIDs.subtract(ids)
     }
 
     func openFolderPicker() {

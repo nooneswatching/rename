@@ -5,7 +5,8 @@ struct PreviewBarView: View {
     let onApply: () -> Void
 
     private var previewFile: RenameFile? {
-        if let id = appState.selectedFileID {
+        if appState.selectedFileIDs.count == 1,
+           let id = appState.selectedFileIDs.first {
             return appState.files.first(where: { $0.id == id })
         }
         return appState.files.first
