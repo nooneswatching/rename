@@ -20,55 +20,54 @@ struct SidebarView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(spacing: 0) {
+            HStack {
                 Text("Source")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(sourceSummary)
-                    .font(.body)
-                    .lineLimit(2)
-                    .truncationMode(.middle)
+                    .font(.headline)
+                Spacer()
                 Text("\(appState.files.count) file\(appState.files.count == 1 ? "" : "s")")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal)
-            .padding(.top)
+            .frame(height: 38)
+            .padding(.horizontal, 12)
 
             Divider()
 
-            if !availableExtensions.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Filter by type")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
+            VStack(alignment: .leading, spacing: 12) {
+                if !availableExtensions.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Filter by type")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
 
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 2) {
-                            FilterRow(label: "All", isSelected: extensionFilter.isEmpty) {
-                                extensionFilter = ""
-                            }
-                            ForEach(availableExtensions, id: \.self) { ext in
-                                FilterRow(label: ".\(ext)", isSelected: extensionFilter == ext) {
-                                    extensionFilter = ext
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 2) {
+                                FilterRow(label: "All", isSelected: extensionFilter.isEmpty) {
+                                    extensionFilter = ""
+                                }
+                                ForEach(availableExtensions, id: \.self) { ext in
+                                    FilterRow(label: ".\(ext)", isSelected: extensionFilter == ext) {
+                                        extensionFilter = ext
+                                    }
                                 }
                             }
+                            .padding(.horizontal, 8)
                         }
-                        .padding(.horizontal, 8)
                     }
                 }
-            }
 
-            Spacer()
+                Spacer()
 
-            Button(role: .destructive, action: { appState.clearFiles() }) {
-                Label("Clear All", systemImage: "trash")
-                    .frame(maxWidth: .infinity)
+                Button(role: .destructive, action: { appState.clearFiles() }) {
+                    Label("Clear All", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                }
+                .padding()
+                .disabled(appState.files.isEmpty)
             }
-            .padding()
-            .disabled(appState.files.isEmpty)
+            .padding(.top, 12)
         }
         .onChange(of: extensionFilter) { _, newValue in
             appState.extensionFilter = newValue

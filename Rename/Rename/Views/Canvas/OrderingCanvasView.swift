@@ -21,14 +21,19 @@ struct OrderingCanvasView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("View", selection: $mode) {
-                ForEach(CanvasMode.allCases, id: \.self) { m in
-                    Text(m.rawValue).tag(m)
+            HStack {
+                Spacer()
+                Picker("View", selection: $mode) {
+                    ForEach(CanvasMode.allCases, id: \.self) { m in
+                        Text(m.rawValue).tag(m)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .frame(width: 140)
+                Spacer()
             }
-            .pickerStyle(.segmented)
-            .frame(width: 140)
-            .padding(8)
+            .frame(height: 38)
+            .padding(.horizontal, 12)
 
             Divider()
 
@@ -48,9 +53,10 @@ struct OrderingCanvasView: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "photo.stack")
-                .font(.system(size: 48))
+                .font(.system(size: 56))
                 .foregroundStyle(.tertiary)
             Text("Drop files here or use the toolbar to load files")
+                .font(.body)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

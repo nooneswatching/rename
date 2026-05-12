@@ -19,18 +19,18 @@ struct RulesPanelView: View {
                         .environmentObject(appState)
                 }
             }
+            .frame(height: 38)
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
 
             Divider()
 
             if appState.rules.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "wand.and.stars")
-                        .font(.title2)
+                        .font(.system(size: 56))
                         .foregroundStyle(.tertiary)
                     Text("Add a rule to start renaming")
-                        .font(.caption)
+                        .font(.body)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
