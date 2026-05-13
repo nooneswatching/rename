@@ -252,6 +252,11 @@ struct OrderingCanvasView: View {
             }
             .padding()
             .animation(.default, value: appState.files.map(\.id))
+            .background {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { appState.selectedFileIDs = [] }
+            }
         }
     }
 
