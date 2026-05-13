@@ -127,6 +127,7 @@ struct OrderingCanvasView: View {
 
     private func removeSelected() {
         let visibleSelected = Set(visibleFiles.map(\.id)).intersection(appState.selectedFileIDs)
+        visibleSelected.forEach { cardFrames.removeValue(forKey: $0) }
         appState.removeFiles(ids: visibleSelected)
         lastClickedID = nil
     }
@@ -228,7 +229,10 @@ struct OrderingCanvasView: View {
             : [file.id]
         let label = targetIDs.count > 1 ? "Remove \(targetIDs.count) Files" : "Remove from List"
 
-        Button(role: .destructive, action: { appState.removeFiles(ids: targetIDs) }) {
+        Button(role: .destructive, action: {
+            targetIDs.forEach { cardFrames.removeValue(forKey: $0) }
+            appState.removeFiles(ids: targetIDs)
+        }) {
             Label(label, systemImage: "trash")
         }
     }
@@ -266,12 +270,6 @@ struct OrderingCanvasView: View {
                     .gesture(
                         DragGesture(minimumDistance: 5, coordinateSpace: .named("gridCoordSpace"))
                             .onChanged { value in
-                                // Guard: if drag started over a card, don't rubber-band
-                                let startedOnCard = cardFrames.values.contains { $0.contains(value.startLocation) }
-                                guard !startedOnCard else {
-                                    selectionDragRect = nil
-                                    return
-                                }
                                 let rect = CGRect(
                                     x: min(value.startLocation.x, value.location.x),
                                     y: min(value.startLocation.y, value.location.y),
