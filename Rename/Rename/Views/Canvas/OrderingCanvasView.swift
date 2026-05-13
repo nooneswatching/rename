@@ -88,8 +88,9 @@ struct OrderingCanvasView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onKeyPress(.delete) {
-            if selectionCount > 0 { removeSelected() }
-            return selectionCount > 0 ? .handled : .ignored
+            let hadSelection = selectionCount > 0
+            if hadSelection { removeSelected() }
+            return hadSelection ? .handled : .ignored
         }
     }
 
@@ -270,6 +271,7 @@ struct OrderingCanvasView: View {
                     .gesture(
                         DragGesture(minimumDistance: 5, coordinateSpace: .named("gridCoordSpace"))
                             .onChanged { value in
+                                guard draggingIDs.isEmpty else { return }
                                 let rect = CGRect(
                                     x: min(value.startLocation.x, value.location.x),
                                     y: min(value.startLocation.y, value.location.y),
