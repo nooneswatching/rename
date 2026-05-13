@@ -18,6 +18,8 @@ struct OrderingCanvasView: View {
     @State private var draggingIDs: Set<UUID> = []
     @State private var dropInsertIndex: Int? = nil
     @State private var thumbnailSize: CGFloat = 80
+    @State private var cardFrames: [UUID: CGRect] = [:]
+    @State private var selectionDragRect: CGRect? = nil
 
     private var visibleFiles: [RenameFile] {
         guard !appState.extensionFilter.isEmpty else { return appState.files }
@@ -247,6 +249,11 @@ struct OrderingCanvasView: View {
                             thumbnailSize: thumbnailSize,
                             onSelect: { handleTap(file: file) }
                         )
+                        .onGeometryChange(for: CGRect.self) { proxy in
+                            proxy.frame(in: .named("gridCoordSpace"))
+                        } action: { frame in
+                            cardFrames[file.id] = frame
+                        }
                     }
                 }
             }
@@ -256,6 +263,44 @@ struct OrderingCanvasView: View {
                 Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture { appState.selectedFileIDs = [] }
+                    .gesture(
+                        DragGesture(minimumDistance: 5, coordinateSpace: .named("gridCoordSpace"))
+                            .onChanged { value in
+                                // Guard: if drag started over a card, don't rubber-band
+                                let startedOnCard = cardFrames.values.contains { $0.contains(value.startLocation) }
+                                guard !startedOnCard else {
+                                    selectionDragRect = nil
+                                    return
+                                }
+                                let rect = CGRect(
+                                    x: min(value.startLocation.x, value.location.x),
+                                    y: min(value.startLocation.y, value.location.y),
+                                    width: abs(value.location.x - value.startLocation.x),
+                                    height: abs(value.location.y - value.startLocation.y)
+                                )
+                                selectionDragRect = rect
+                                let visibleIDs = Set(visibleFiles.map(\.id))
+                                appState.selectedFileIDs = Set(
+                                    cardFrames
+                                        .filter { visibleIDs.contains($0.key) && $0.value.intersects(rect) }
+                                        .map(\.key)
+                                )
+                            }
+                            .onEnded { _ in
+                                selectionDragRect = nil
+                            }
+                    )
+            }
+            .coordinateSpace(name: "gridCoordSpace")
+            .overlay(alignment: .topLeading) {
+                if let rect = selectionDragRect {
+                    Rectangle()
+                        .fill(Color.accentColor.opacity(0.15))
+                        .overlay { Rectangle().stroke(Color.accentColor.opacity(0.5), lineWidth: 1) }
+                        .frame(width: rect.width, height: rect.height)
+                        .offset(x: rect.minX, y: rect.minY)
+                        .allowsHitTesting(false)
+                }
             }
         }
     }
