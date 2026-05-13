@@ -7,10 +7,17 @@ enum CanvasMode: String, CaseIterable {
     case list = "List"
 }
 
+enum DropIndicator: Equatable {
+    case leading, trailing
+}
+
 struct OrderingCanvasView: View {
     @EnvironmentObject var appState: AppState
     @State private var mode: CanvasMode = .grid
     @State private var lastClickedID: UUID? = nil
+    @State private var draggingIDs: Set<UUID> = []
+    @State private var dropInsertIndex: Int? = nil
+    @State private var thumbnailSize: CGFloat = 80
 
     private var visibleFiles: [RenameFile] {
         guard !appState.extensionFilter.isEmpty else { return appState.files }
@@ -42,7 +49,19 @@ struct OrderingCanvasView: View {
                 .pickerStyle(.segmented)
                 .frame(width: 140)
                 Spacer()
-                if selectionCount > 0 {
+                if mode == .grid {
+                    HStack(spacing: 4) {
+                        Image(systemName: "photo")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Slider(value: $thumbnailSize, in: 50...160)
+                            .frame(width: 100)
+                        Image(systemName: "photo")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                        }
+                    .padding(.trailing, 4)
+                } else if selectionCount > 0 {
                     Button(action: {}) {
                         Label("Remove \(selectionCount)", systemImage: "trash")
                     }
@@ -94,7 +113,6 @@ struct OrderingCanvasView: View {
                     : ids[targetIndex...anchorIndex]
                 appState.selectedFileIDs.formUnion(range)
             } else {
-                // Anchor is no longer visible; fall back to plain select
                 appState.selectedFileIDs = [file.id]
                 lastClickedID = file.id
             }
@@ -108,6 +126,80 @@ struct OrderingCanvasView: View {
         let visibleSelected = Set(visibleFiles.map(\.id)).intersection(appState.selectedFileIDs)
         appState.removeFiles(ids: visibleSelected)
         lastClickedID = nil
+    }
+
+    // MARK: Drag helpers
+
+    private func startDrag(for file: RenameFile) -> NSItemProvider {
+        draggingIDs = []
+        var ids = appState.selectedFileIDs
+        ids.insert(file.id)
+        draggingIDs = ids
+        appState.selectedFileIDs = ids
+        return NSItemProvider(object: ids.map(\.uuidString).joined(separator: ",") as NSString)
+    }
+
+    @ViewBuilder
+    private func dragPreview(for file: RenameFile) -> some View {
+        let count = appState.selectedFileIDs.count
+        ZStack(alignment: .topTrailing) {
+            FileCardView(
+                file: file,
+                isSelected: true,
+                isConflict: false,
+                isDragging: false,
+                dropIndicator: nil,
+                thumbnailSize: 80,
+                onSelect: {}
+            )
+            if count > 1 {
+                Text("\(count)")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor, in: Capsule())
+                    .offset(x: 6, y: -6)
+            }
+        }
+    }
+
+    // MARK: Drop indicator
+
+    private func dropIndicator(at fileIndex: Int) -> DropIndicator? {
+        guard let insertAt = dropInsertIndex else { return nil }
+        if insertAt == fileIndex { return .leading }
+        // Trailing indicator: show on the last visible card when appending past it
+        let lastVisibleIndex = appState.files.firstIndex(where: { $0.id == visibleFiles.last?.id })
+        if let lastVisibleIndex, insertAt == lastVisibleIndex + 1, fileIndex == lastVisibleIndex {
+            return .trailing
+        }
+        return nil
+    }
+
+    // MARK: Per-item drag/drop wiring
+
+    @ViewBuilder
+    private func fileItem<Card: View>(
+        file: RenameFile,
+        splitValue: CGFloat,
+        splitAxisIsX: Bool,
+        @ViewBuilder card: (Int) -> Card
+    ) -> some View {
+        let fileIndex = appState.files.firstIndex(where: { $0.id == file.id }) ?? 0
+        card(fileIndex)
+            .contextMenu { contextMenu(for: file) }
+            .onDrag { startDrag(for: file) } preview: { dragPreview(for: file) }
+            .onDrop(of: [UTType.plainText], delegate: ReorderDropDelegate(
+                targetID: file.id,
+                targetIndex: fileIndex,
+                splitValue: splitValue,
+                splitAxisIsX: splitAxisIsX,
+                appState: appState,
+                draggingIDs: $draggingIDs,
+                dropInsertIndex: $dropInsertIndex
+            ))
     }
 
     // MARK: Empty state
@@ -142,22 +234,19 @@ struct OrderingCanvasView: View {
 
     private var gridView: some View {
         ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: 12) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: thumbnailSize * 1.25 + 20))], spacing: 12) {
                 ForEach(visibleFiles) { file in
-                    FileCardView(
-                        file: file,
-                        isSelected: appState.selectedFileIDs.contains(file.id),
-                        isConflict: conflictNames.contains(file.computedName),
-                        onSelect: { handleTap(file: file) }
-                    )
-                    .contextMenu { contextMenu(for: file) }
-                    .onDrag {
-                        NSItemProvider(object: file.id.uuidString as NSString)
+                    fileItem(file: file, splitValue: thumbnailSize * 0.625, splitAxisIsX: true) { fileIndex in  // 0.625 = thumbnailWidth / 2
+                        FileCardView(
+                            file: file,
+                            isSelected: appState.selectedFileIDs.contains(file.id),
+                            isConflict: conflictNames.contains(file.computedName),
+                            isDragging: draggingIDs.contains(file.id),
+                            dropIndicator: dropIndicator(at: fileIndex),
+                            thumbnailSize: thumbnailSize,
+                            onSelect: { handleTap(file: file) }
+                        )
                     }
-                    .onDrop(of: [UTType.plainText], delegate: ReorderDropDelegate(
-                        targetID: file.id,
-                        appState: appState
-                    ))
                 }
             }
             .padding()
@@ -171,20 +260,16 @@ struct OrderingCanvasView: View {
         ScrollView {
             LazyVStack(spacing: 2) {
                 ForEach(visibleFiles) { file in
-                    FileRowView(
-                        file: file,
-                        isSelected: appState.selectedFileIDs.contains(file.id),
-                        isConflict: conflictNames.contains(file.computedName),
-                        onSelect: { handleTap(file: file) }
-                    )
-                    .contextMenu { contextMenu(for: file) }
-                    .onDrag {
-                        NSItemProvider(object: file.id.uuidString as NSString)
+                    fileItem(file: file, splitValue: 14, splitAxisIsX: false) { fileIndex in
+                        FileRowView(
+                            file: file,
+                            isSelected: appState.selectedFileIDs.contains(file.id),
+                            isConflict: conflictNames.contains(file.computedName),
+                            isDragging: draggingIDs.contains(file.id),
+                            dropIndicator: dropIndicator(at: fileIndex),
+                            onSelect: { handleTap(file: file) }
+                        )
                     }
-                    .onDrop(of: [UTType.plainText], delegate: ReorderDropDelegate(
-                        targetID: file.id,
-                        appState: appState
-                    ))
                 }
             }
             .padding(.vertical, 4)
@@ -192,35 +277,61 @@ struct OrderingCanvasView: View {
     }
 }
 
-// MARK: - Grid Drop Delegate
+// MARK: - Reorder Drop Delegate
 
 struct ReorderDropDelegate: DropDelegate {
     let targetID: UUID
+    let targetIndex: Int
+    let splitValue: CGFloat
+    let splitAxisIsX: Bool
     let appState: AppState
+    var draggingIDs: Binding<Set<UUID>>
+    var dropInsertIndex: Binding<Int?>
+
+    func validateDrop(info: DropInfo) -> Bool {
+        !info.itemProviders(for: [UTType.plainText]).isEmpty &&
+        !draggingIDs.wrappedValue.contains(targetID)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        guard !draggingIDs.wrappedValue.isEmpty,
+              !draggingIDs.wrappedValue.contains(targetID) else {
+            return DropProposal(operation: .cancel)
+        }
+        let loc = info.location
+        let insertBefore = splitAxisIsX ? loc.x < splitValue : loc.y < splitValue
+        dropInsertIndex.wrappedValue = insertBefore ? targetIndex : targetIndex + 1
+        return DropProposal(operation: .move)
+    }
+
+    func dropExited(info: DropInfo) {
+        dropInsertIndex.wrappedValue = nil
+    }
 
     func performDrop(info: DropInfo) -> Bool {
+        let insertAt = dropInsertIndex.wrappedValue
+        dropInsertIndex.wrappedValue = nil
+        draggingIDs.wrappedValue = []
+
         guard let provider = info.itemProviders(for: [UTType.plainText]).first else { return false }
         provider.loadObject(ofClass: NSString.self) { object, _ in
-            guard let idString = object as? String,
-                  let fromID = UUID(uuidString: idString) else { return }
+            guard let idString = object as? String else { return }
+            let ids = idString.split(separator: ",").compactMap { UUID(uuidString: String($0)) }
+            guard !ids.isEmpty else { return }
             DispatchQueue.main.async {
-                guard let fromIndex = appState.files.firstIndex(where: { $0.id == fromID }),
-                      let toIndex = appState.files.firstIndex(where: { $0.id == targetID }),
-                      fromIndex != toIndex else { return }
+                let fromOffsets = IndexSet(ids.compactMap { id in
+                    appState.files.firstIndex(where: { $0.id == id })
+                })
+                guard !fromOffsets.isEmpty else { return }
+                let toOffset = min(insertAt ?? {
+                    guard let targetIdx = appState.files.firstIndex(where: { $0.id == targetID }) else { return 0 }
+                    return (fromOffsets.min() ?? 0) < targetIdx ? targetIdx + 1 : targetIdx
+                }(), appState.files.count)
                 withAnimation {
-                    appState.files.move(
-                        fromOffsets: IndexSet(integer: fromIndex),
-                        toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
-                    )
+                    appState.moveFiles(from: fromOffsets, to: toOffset)
                 }
             }
         }
         return true
     }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-
-    func validateDrop(info: DropInfo) -> Bool { true }
 }
