@@ -56,6 +56,7 @@ struct OrderingCanvasView: View {
                             .foregroundStyle(.secondary)
                         Slider(value: $thumbnailSize, in: 50...160)
                             .frame(width: 100)
+                            .accessibilityLabel("Thumbnail size")
                         Image(systemName: "photo")
                             .font(.body)
                             .foregroundStyle(.secondary)
@@ -236,7 +237,7 @@ struct OrderingCanvasView: View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: thumbnailSize * 1.25 + 20))], spacing: 12) {
                 ForEach(visibleFiles) { file in
-                    fileItem(file: file, splitValue: thumbnailSize * 0.625, splitAxisIsX: true) { fileIndex in  // 0.625 = thumbnailWidth / 2
+                    fileItem(file: file, splitValue: thumbnailSize * 0.625 + 4, splitAxisIsX: true) { fileIndex in  // thumbnailWidth/2 + card padding
                         FileCardView(
                             file: file,
                             isSelected: appState.selectedFileIDs.contains(file.id),
