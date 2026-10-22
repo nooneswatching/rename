@@ -1,0 +1,50 @@
+name: Windows
+
+on:
+  push:
+    paths:
+      - "RenameWindows/**"
+      - ".github/workflows/windows.yml"
+  pull_request:
+    paths:
+      - "RenameWindows/**"
+      - ".github/workflows/windows.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: RenameWindows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore Rename.sln
+
+      - name: Build
+        run: dotnet build Rename.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test Rename.Core.Tests --configuration Release --no-build --logger "trx;LogFileName=results.trx"
+
+      - name: Publish single-file exe (x64)
+        run: dotnet publish Rename.App -c Release -r win-x64 -p:PublishProfile=win-x64 -o ../artifacts/win-x64
+
+      - name: Publish single-file exe (Arm64)
+        run: dotnet publish Rename.App -c Release -r win-arm64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:PublishReadyToRun=true -p:DebugType=none -o ../artifacts/win-arm64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rename-win-x64
+          path: artifacts/win-x64/Rename.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rename-win-arm64
+          path: artifacts/win-arm64/Rename.exe

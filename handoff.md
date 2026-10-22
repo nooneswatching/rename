@@ -16,6 +16,17 @@ App is signed, notarized, and packaged as a drag-to-install DMG (`Rename.dmg` on
 
 ---
 
+## Windows Port (2026-10-22)
+
+A native Windows version lives in `RenameWindows/` (WPF on .NET 10, Fluent theme). See `RenameWindows/README.md`.
+
+- `Rename.Core` holds the engine/state with no UI dependency; `Rename.Core.Tests` ports the full Swift test suite (110 tests) and runs on any OS
+- `Rename.App` is the WPF UI: same three-panel layout, grid/list canvas with drag-reorder and rubber-band selection, stacked rule cards, review dialog, undo
+- CI: `.github/workflows/windows.yml` builds, tests, and uploads single-file `Rename.exe` artifacts for x64 and Arm64
+- Not yet done: a hands-on UI pass on a real Windows machine (the port was built and unit tested on Linux), Authenticode signing, MSIX/Store packaging
+
+---
+
 ## Project State
 
 **Repo:** https://github.com/nooneswatching/rename

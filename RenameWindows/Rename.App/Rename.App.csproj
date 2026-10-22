@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Rename</AssemblyName>
+    <RootNamespace>Rename.App</RootNamespace>
+    <ApplicationIcon>Assets\Rename.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Lets the project restore and compile on non-Windows hosts (CI, Linux dev boxes).
+         The produced exe still only runs on Windows. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="10.0.13" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Rename.Core\Rename.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\Rename.ico" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,78 @@
+<Window x:Class="Rename.App.Views.ReviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Review Renames"
+        Width="640" Height="520" MinWidth="480" MinHeight="360"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+    <DockPanel>
+        <!-- Header -->
+        <Grid DockPanel.Dock="Top" Margin="16,12">
+            <TextBlock Style="{StaticResource PanelHeaderText}" Text="Review Renames" HorizontalAlignment="Left" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                        Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE7BA;" FontSize="12" Margin="0,0,6,0"
+                           Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                <TextBlock FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                           Text="{Binding ConflictCount, Converter={StaticResource Plural}, ConverterParameter=conflict|conflicts}" />
+            </StackPanel>
+        </Grid>
+        <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+
+        <!-- Column headers -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource LayerFillColorDefaultBrush}" Padding="16,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Style="{StaticResource CaptionText}" Text="Original Name" />
+                <TextBlock Grid.Column="1" Style="{StaticResource CaptionText}" Text="New Name" />
+            </Grid>
+        </Border>
+        <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+
+        <!-- Footer -->
+        <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" Padding="16,12">
+            <Grid>
+                <Button Content="Cancel" IsCancel="True" HorizontalAlignment="Left" MinWidth="90" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Style="{StaticResource CaptionText}" Text="Fix conflicts before confirming" Margin="0,0,12,0"
+                               Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}" />
+                    <Button Content="Confirm Rename" IsDefault="True" MinWidth="130"
+                            Style="{DynamicResource AccentButtonStyle}" Click="OnConfirm"
+                            IsEnabled="{Binding HasConflicts, Converter={StaticResource InverseBool}}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- File list -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Files}" AlternationCount="2" Margin="0,2">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border x:Name="Row" Padding="16,5">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                                <TextBlock Grid.Column="1" x:Name="NewName" Text="{Binding ComputedName}" TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource LayerFillColorDefaultBrush}" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsConflict}" Value="True">
+                                <Setter TargetName="NewName" Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                <Setter TargetName="NewName" Property="FontWeight" Value="SemiBold" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

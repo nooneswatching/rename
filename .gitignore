@@ -4,3 +4,11 @@
 xcuserdata/
 DerivedData/
 .DS_Store
+
+# .NET / Windows app
+bin/
+obj/
+artifacts/
+*.user
+.vs/
+TestResults/

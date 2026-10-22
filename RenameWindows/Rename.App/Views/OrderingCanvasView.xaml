@@ -1,0 +1,167 @@
+<UserControl x:Class="Rename.App.Views.OrderingCanvasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Rename.App.Views"
+             Focusable="True"
+             PreviewKeyDown="OnPreviewKeyDown">
+    <UserControl.Resources>
+        <!-- Grid card: thumbnail, original name, computed name -->
+        <DataTemplate x:Key="FileCardTemplate">
+            <Grid Margin="6">
+                <Border x:Name="SelectionTint" CornerRadius="10" Opacity="0.12" Visibility="Collapsed"
+                        Background="{DynamicResource AccentFillColorDefaultBrush}" />
+                <StackPanel Margin="4"
+                            Width="{Binding ThumbnailSize, RelativeSource={RelativeSource AncestorType=local:OrderingCanvasView}, Converter={StaticResource Multiply}, ConverterParameter=1.25}">
+                    <Grid Height="{Binding ThumbnailSize, RelativeSource={RelativeSource AncestorType=local:OrderingCanvasView}}">
+                        <Border CornerRadius="8" Background="{DynamicResource ControlFillColorSecondaryBrush}" />
+                        <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="3"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
+                        <Border x:Name="SelectionStroke" CornerRadius="8" BorderThickness="2" Visibility="Collapsed"
+                                BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" />
+                    </Grid>
+                    <TextBlock Text="{Binding FileName}" FontSize="11" Margin="0,4,0,0" MaxHeight="30"
+                               TextWrapping="Wrap" TextTrimming="CharacterEllipsis" TextAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="NewName" Text="{Binding ComputedName}" FontSize="11" Margin="0,2,0,0" MaxHeight="30"
+                               TextWrapping="Wrap" TextTrimming="CharacterEllipsis" TextAlignment="Center"
+                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                </StackPanel>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="SelectionTint" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="SelectionStroke" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsConflict}" Value="True">
+                    <Setter TargetName="NewName" Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- List row: grip, icon, original name → computed name -->
+        <DataTemplate x:Key="FileRowTemplate">
+            <Grid Margin="8,1">
+                <Border x:Name="SelectionTint" CornerRadius="6" Opacity="0.12" Visibility="Collapsed"
+                        Background="{DynamicResource AccentFillColorDefaultBrush}" />
+                <Grid Margin="8,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Style="{StaticResource IconGlyph}" Text="&#xE700;" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <Image Grid.Column="1" Source="{Binding Thumbnail}" Width="20" Height="20" Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           Visibility="{Binding Thumbnail, Converter={StaticResource NotNullToVisibility}}" />
+                    <TextBlock Grid.Column="1" Style="{StaticResource IconGlyph}" Text="&#xE8A5;"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibility}}" />
+                    <TextBlock Grid.Column="2" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0" />
+                    <TextBlock Grid.Column="3" Style="{StaticResource IconGlyph}" Text="&#xE72A;" FontSize="11" Margin="8,0"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <TextBlock Grid.Column="4" x:Name="NewName" Text="{Binding ComputedName}" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" Margin="4,0"
+                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                </Grid>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="SelectionTint" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsConflict}" Value="True">
+                    <Setter TargetName="NewName" Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- Header bar -->
+        <Grid DockPanel.Dock="Top" Height="38" Margin="12,0">
+            <Button Style="{StaticResource PlainButton}" HorizontalAlignment="Left" VerticalAlignment="Center"
+                    Click="OnRemoveSelected" ToolTip="Remove the selected files from the list (Delete)"
+                    Visibility="{Binding SelectionCount, Converter={StaticResource NonZeroToVisibility}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE74D;" FontSize="12" Margin="0,0,6,0"
+                               Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                               Text="{Binding SelectionCount, StringFormat='Remove {0}'}" />
+                </StackPanel>
+            </Button>
+
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="6"
+                    Background="{DynamicResource LayerFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton x:Name="GridModeButton" Style="{StaticResource SegmentButton}" Content="Grid" IsChecked="True" Checked="OnModeChanged" />
+                    <RadioButton x:Name="ListModeButton" Style="{StaticResource SegmentButton}" Content="List" Checked="OnModeChanged" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel x:Name="SizeControls" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE91B;" FontSize="10" Margin="0,0,6,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <Slider Width="110" Minimum="50" Maximum="160" VerticalAlignment="Center" IsMoveToPointEnabled="True"
+                        AutomationProperties.Name="Thumbnail size" ToolTip="Thumbnail size"
+                        Value="{Binding ThumbnailSize, RelativeSource={RelativeSource AncestorType=local:OrderingCanvasView}, Mode=TwoWay}" />
+                <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE91B;" FontSize="15" Margin="6,0,0,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </Grid>
+        <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+
+        <Grid>
+            <!-- Empty state -->
+            <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24">
+                <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE8B9;" FontSize="56" Margin="0,0,0,12"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                <TextBlock Text="Drop files here or use the toolbar to load files" FontSize="14" TextAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- Grid mode -->
+            <ScrollViewer x:Name="GridScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                <Grid x:Name="GridHost" Background="Transparent" AllowDrop="True"
+                      MinHeight="{Binding ViewportHeight, ElementName=GridScroll}"
+                      PreviewMouseLeftButtonDown="OnHostMouseDown" PreviewMouseMove="OnHostMouseMove"
+                      PreviewMouseLeftButtonUp="OnHostMouseUp" LostMouseCapture="OnHostLostCapture"
+                      MouseRightButtonUp="OnHostRightClick"
+                      DragOver="OnHostDragOver" DragLeave="OnHostDragLeave" Drop="OnHostDrop" GiveFeedback="OnGiveFeedback">
+                    <ItemsControl x:Name="GridItems" ItemTemplate="{StaticResource FileCardTemplate}" Padding="10" Background="Transparent"
+                                  VerticalAlignment="Top">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <Canvas x:Name="GridOverlay" IsHitTestVisible="False" />
+                </Grid>
+            </ScrollViewer>
+
+            <!-- List mode -->
+            <ScrollViewer x:Name="ListScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                          Visibility="Collapsed">
+                <Grid x:Name="ListHost" Background="Transparent" AllowDrop="True"
+                      MinHeight="{Binding ViewportHeight, ElementName=ListScroll}"
+                      PreviewMouseLeftButtonDown="OnHostMouseDown" PreviewMouseMove="OnHostMouseMove"
+                      PreviewMouseLeftButtonUp="OnHostMouseUp" LostMouseCapture="OnHostLostCapture"
+                      MouseRightButtonUp="OnHostRightClick"
+                      DragOver="OnHostDragOver" DragLeave="OnHostDragLeave" Drop="OnHostDrop" GiveFeedback="OnGiveFeedback">
+                    <ItemsControl x:Name="ListItems" ItemTemplate="{StaticResource FileRowTemplate}" Padding="0,4" Background="Transparent"
+                                  VerticalAlignment="Top">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <Canvas x:Name="ListOverlay" IsHitTestVisible="False" />
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</UserControl>
